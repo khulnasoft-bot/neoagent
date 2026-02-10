@@ -263,13 +263,22 @@ npm error code 1
 npm error path /vercel/.../node_modules/node-llama-cpp
 ```
 
-**Root Cause:** `node-llama-cpp` is an optional peer dependency that requires native C++ compilation using cmake. Vercel's serverless functions don't include build tools.
+**Root Cause:** `node-llama-cpp` is an optional peer dependency with a postinstall script that tries to build native binaries. Vercel's serverless environment doesn't include build tools like cmake.
 
 **Solution:** This is already fixed in the latest version:
 
-- `node-llama-cpp` is marked as optional in `package.json`
-- Removed from `.npmrc` `allow-build-scripts` list to prevent build attempts
-- Installation will skip it gracefully
+1. `.npmrc` configured with `ignore-scripts=true` to skip postinstall scripts during install
+2. `node-llama-cpp` marked as optional in `package.json`
+3. Custom Vercel build script (`scripts/vercel-build.sh`) selectively runs only essential postinstall scripts
+4. node-llama-cpp is intentionally skipped during build
+
+**Build Process:**
+
+- Vercel uses `bash scripts/vercel-build.sh` which:
+  - Installs dependencies with `--ignore-scripts` flag
+  - Runs postinstall for essential packages only (sharp, esbuild, protobufjs)
+  - Skips node-llama-cpp entirely
+  - Builds the application
 
 **If you need local embeddings:**
 

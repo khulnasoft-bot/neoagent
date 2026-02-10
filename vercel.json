@@ -39,6 +39,6 @@
   },
   "regions": ["sfo1"],
   "public": false,
-  "buildCommand": "pnpm install && pnpm build",
-  "installCommand": "pnpm install --frozen-lockfile"
+  "buildCommand": "bash scripts/vercel-build.sh",
+  "installCommand": "pnpm install --frozen-lockfile --ignore-scripts"
 }

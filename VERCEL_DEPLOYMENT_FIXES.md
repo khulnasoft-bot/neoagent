@@ -2,69 +2,84 @@
 
 This document summarizes the fixes applied to support OpenClaw deployment on Vercel's serverless platform.
 
-## Issue: node-llama-cpp Build Failure
+## Issue: node-llama-cpp Postinstall Script Fails
 
 ### Problem
 
 When deploying to Vercel, npm installation fails with:
 
 ```
+[node-llama-cpp] ◷ Downloading cmake
+@xpack-dev-tools/cmake@3.31.9-1.1 => '/vercel/path1/node_modules/node-llama-cpp/...'
 [node-llama-cpp] Failed to build llama.cpp with no GPU support. Error: cmake not found
 npm error code 1
 ```
 
 ### Root Cause
 
-`node-llama-cpp` is a native module that requires C++ compilation tools (cmake, gcc). Vercel's serverless functions don't have these tools available, causing the build to fail.
+`node-llama-cpp` has a postinstall script that automatically runs after installation. This script attempts to:
+
+1. Download cmake binary from GitHub
+2. Extract it to the node_modules folder
+3. Compile llama.cpp from source using the cmake build system
+
+Vercel's serverless environment lacks the necessary build tools, disk space, and compatibility for this process.
 
 ### Solution
 
-Three changes were made to fix this:
+A multi-layer fix was implemented:
 
-#### 1. Optional Peer Dependency (package.json)
+#### 1. Disable Postinstall Scripts (.npmrc)
 
-Changed `node-llama-cpp` from a required peer dependency to an optional one:
+```npmrc
+# Vercel Deployment Configuration
+ignore-scripts=true
+frozen-lockfile=true
+prefer-offline=false
+no-audit=true
+```
+
+This prevents ALL postinstall scripts from running during initial `npm install`.
+
+#### 2. Custom Vercel Build Script (scripts/vercel-build.sh)
+
+Created a selective build script that:
+
+- Installs dependencies with `--ignore-scripts` flag to skip all postinstall scripts
+- Manually runs postinstall for ONLY essential packages:
+  - `sharp` - image processing library (critical for canvas rendering)
+  - `esbuild` - bundler used in build process
+  - `protobufjs` - protocol buffer code generation
+- Explicitly skips `node-llama-cpp` with a comment for clarity
+
+```bash
+#!/bin/bash
+set -e
+
+# Install with scripts disabled
+pnpm install --frozen-lockfile --ignore-scripts
+
+# Run selective postinstall hooks
+cd node_modules/sharp && npm run install || true && cd ../..
+cd node_modules/esbuild && npm run postinstall || true && cd ../..
+cd node_modules/protobufjs && npm run build || true && cd ../..
+
+# node-llama-cpp is skipped intentionally (requires cmake)
+
+# Build the application
+pnpm build
+```
+
+#### 3. Updated Vercel Configuration (vercel.json)
 
 ```json
-"peerDependencies": {
-  "@napi-rs/canvas": "^0.1.89"
-},
-"peerDependenciesMeta": {
-  "@napi-rs/canvas": {
-    "optional": true
-  },
-  "node-llama-cpp": {
-    "optional": true
-  }
+{
+  "buildCommand": "bash scripts/vercel-build.sh",
+  "installCommand": "pnpm install --frozen-lockfile --ignore-scripts"
 }
 ```
 
-#### 2. Removed from Build Scripts (.npmrc)
-
-Removed `node-llama-cpp` from the `allow-build-scripts` list to prevent npm from attempting to build it:
-
-```npmrc
-allow-build-scripts=@whiskeysockets/baileys,sharp,esbuild,protobufjs,fs-ext,node-pty,@lydell/node-pty,@matrix-org/matrix-sdk-crypto-nodejs
-```
-
-Before: `node-llama-cpp` was included in the list and forced a build attempt.
-
-#### 3. Updated pnpm Configuration (package.json)
-
-Removed `node-llama-cpp` from the `onlyBuiltDependencies` array:
-
-```json
-"onlyBuiltDependencies": [
-  "@lydell/node-pty",
-  "@matrix-org/matrix-sdk-crypto-nodejs",
-  "@napi-rs/canvas",
-  "@whiskeysockets/baileys",
-  "authenticate-pam",
-  "esbuild",
-  "protobufjs",
-  "sharp"
-]
-```
+Points the build process to our custom script instead of the default build command.
 
 ## Impact
 
