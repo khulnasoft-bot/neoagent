@@ -142,6 +142,7 @@
     "long": "^5.3.2",
     "markdown-it": "^14.1.0",
     "node-edge-tts": "^1.2.10",
+    "node-llama-cpp": "^3.15.1",
     "osc-progress": "^0.3.0",
     "pdfjs-dist": "^5.4.624",
     "playwright-core": "1.58.2",
@@ -181,8 +182,15 @@
     "vitest": "^4.0.18"
   },
   "peerDependencies": {
-    "@napi-rs/canvas": "^0.1.89",
-    "node-llama-cpp": "3.15.1"
+    "@napi-rs/canvas": "^0.1.89"
+  },
+  "peerDependenciesMeta": {
+    "@napi-rs/canvas": {
+      "optional": true
+    },
+    "node-llama-cpp": {
+      "optional": true
+    }
   },
   "engines": {
     "node": ">=22.12.0"
@@ -205,7 +213,6 @@
       "@whiskeysockets/baileys",
       "authenticate-pam",
       "esbuild",
-      "node-llama-cpp",
       "protobufjs",
       "sharp"
     ]

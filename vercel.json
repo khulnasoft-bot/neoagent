@@ -1,0 +1,44 @@
+{
+  "name": "openclaw",
+  "version": 2,
+  "builds": [
+    {
+      "src": "openclaw.mjs",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": [
+          "dist/**",
+          "extensions/**",
+          "assets/**",
+          "skills/**",
+          "ui/dist/**",
+          "package.json",
+          "pnpm-lock.yaml"
+        ],
+        "excludeFiles": [
+          "node_modules/**",
+          "**/*.test.ts",
+          ".git/**",
+          "docs/**",
+          "apps/**",
+          "vendor/**"
+        ]
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "openclaw.mjs"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production",
+    "OPENCLAW_GATEWAY_PORT": "3000",
+    "OPENCLAW_GATEWAY_BIND": "0.0.0.0"
+  },
+  "regions": ["sfo1"],
+  "public": false,
+  "buildCommand": "bash scripts/vercel-build.sh",
+  "installCommand": "pnpm install --frozen-lockfile --ignore-scripts"
+}

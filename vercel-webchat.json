@@ -1,0 +1,82 @@
+{
+  "name": "openclaw-webchat",
+  "version": 2,
+  "buildCommand": "pnpm install && pnpm ui:build && pnpm build",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "public": true,
+  "github": {
+    "enabled": false
+  },
+  "builds": [
+    {
+      "src": "ui/vite.config.ts",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "ui/dist",
+        "buildCommand": "pnpm --dir ui build"
+      }
+    },
+    {
+      "src": "openclaw.mjs",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": [
+          "dist/**",
+          "extensions/**",
+          "assets/**",
+          "skills/**",
+          "ui/dist/**",
+          "package.json",
+          "pnpm-lock.yaml"
+        ],
+        "maxLambdaSize": "3gb"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "ui/dist/static/$1",
+      "headers": {
+        "Cache-Control": "public, max-age=3600, immutable"
+      }
+    },
+    {
+      "src": "/assets/(.*)",
+      "dest": "ui/dist/assets/$1",
+      "headers": {
+        "Cache-Control": "public, max-age=86400, immutable"
+      }
+    },
+    {
+      "src": "/ws",
+      "dest": "openclaw.mjs",
+      "websocket": {
+        "maxPayloadSize": 5242880
+      }
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "openclaw.mjs"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "openclaw.mjs"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production",
+    "OPENCLAW_GATEWAY_PORT": "3000",
+    "OPENCLAW_GATEWAY_BIND": "0.0.0.0",
+    "OPENCLAW_UI_ENABLED": "true",
+    "OPENCLAW_WEBCHAT_ENABLED": "true"
+  },
+  "envFiles": [".env.production"],
+  "regions": ["sfo1"],
+  "functions": {
+    "openclaw.mjs": {
+      "memory": 3008,
+      "maxDuration": 60
+    }
+  }
+}
