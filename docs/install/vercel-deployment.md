@@ -253,6 +253,30 @@ To enable canary deployments:
 
 ## Troubleshooting
 
+### npm Install Fails with node-llama-cpp Error
+
+**Error Message:** `cmake not found` or `node-llama-cpp failed to build`
+
+```
+[node-llama-cpp] Failed to build llama.cpp with no GPU support. Error: cmake not found
+npm error code 1
+npm error path /vercel/.../node_modules/node-llama-cpp
+```
+
+**Root Cause:** `node-llama-cpp` is an optional peer dependency that requires native C++ compilation using cmake. Vercel's serverless functions don't include build tools.
+
+**Solution:** This is already fixed in the latest version:
+
+- `node-llama-cpp` is marked as optional in `package.json`
+- Removed from `.npmrc` `allow-build-scripts` list to prevent build attempts
+- Installation will skip it gracefully
+
+**If you need local embeddings:**
+
+- Use cloud embedding providers (OpenAI, Anthropic, Cohere)
+- Deploy locally or on dedicated infrastructure that supports native builds
+- Use Docker deployment (Dockerfile has necessary build tools)
+
 ### Build Fails
 
 **Issue:** `tsdown` not found
