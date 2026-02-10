@@ -3,7 +3,15 @@ import subprocess
 import sys
 import os
 
-os.chdir('/vercel/share/v0-project')
+# Try to change to the project root if running from scripts directory
+current_dir = os.getcwd()
+print(f"[v0] Current working directory: {current_dir}")
+
+# If we're in the scripts directory, go up one level
+if os.path.basename(current_dir) == 'scripts':
+    os.chdir('..')
+    
+print(f"[v0] Working directory: {os.getcwd()}")
 
 # Run the build command
 build_cmd = [
