@@ -1,0 +1,95 @@
+name: Deploy to Vercel
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+concurrency:
+  group: vercel-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: "pnpm-lock.yaml"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint code
+        run: pnpm lint --type-aware
+        continue-on-error: true
+
+      - name: Check TypeScript
+        run: pnpm tsgo
+        continue-on-error: true
+
+      - name: Build project
+        run: pnpm build
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+
+      - name: Deploy to Vercel
+        uses: vercel/action@v6
+        if: github.event_name == 'push'
+        id: vercel
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          prod: ${{ github.ref == 'refs/heads/main' }}
+          scope: ${{ secrets.VERCEL_ORG_ID }}
+
+      - name: Preview deployment comment
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request' && steps.vercel.outputs.preview-url
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🚀 Vercel Preview Deployment ready!\n\n- **URL**: [${{ steps.vercel.outputs.preview-url }}](${{ steps.vercel.outputs.preview-url }})\n- **State**: ${{ steps.vercel.outputs.state }}\n- **Environment**: Preview\n\nVisit the URL above to verify your changes in a live environment.`
+            })
+
+      - name: Production deployment notification
+        if: github.ref == 'refs/heads/main' && steps.vercel.outputs.preview-url
+        run: |
+          echo "✅ Production deployment successful!"
+          echo "URL: ${{ steps.vercel.outputs.preview-url }}"
+          echo "State: ${{ steps.vercel.outputs.state }}"
+
+      - name: Check deployment status
+        if: steps.vercel.outputs.state == 'FAILED'
+        run: |
+          echo "❌ Deployment failed!"
+          exit 1

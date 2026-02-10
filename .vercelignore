@@ -1,0 +1,67 @@
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Development
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Dependencies
+node_modules
+.pnpm-store
+
+# Documentation
+docs
+README.md
+CONTRIBUTING.md
+CHANGELOG.md
+
+# Testing & CI
+.github
+.circleci
+.gitlab-ci.yml
+.pre-commit-config.yaml
+vitest.config.ts
+vitest.e2e.config.ts
+vitest.live.config.ts
+**/*.test.ts
+**/*.test.js
+coverage
+
+# Build artifacts (will be rebuilt)
+dist
+build
+.next
+out
+
+# Applications (platform-specific)
+apps/android
+apps/ios
+apps/macos
+apps/windows
+Swabble
+
+# Vendor
+vendor
+
+# Temporary files
+.env.example
+.env.local
+.env.*.local
+*.log
+tmp
+temp
+
+# Source maps (large files)
+**/*.map
+
+# Optional npm cache directory
+.npm
+
+# Optional PNPM lock file
+pnpm-lock.yaml
